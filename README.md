@@ -18,6 +18,7 @@ Configure un environnement shell complet en une commande.
 | `bat` | `cat` avec coloration syntaxique |
 | `gdu` | Analyseur d'espace disque interactif |
 | `bpytop` | Moniteur de ressources (CPU, RAM, réseau, disque) |
+| `mc` | Midnight Commander — gestionnaire de fichiers en mode texte |
 
 ### Configuration appliquée
 
