@@ -62,7 +62,20 @@ fi
 step "Configuration .zshrc"
 sed -i 's/^ZSH_THEME=.*/ZSH_THEME="agnoster"/' "$HOME/.zshrc"
 sed -i 's/^plugins=.*/plugins=(git z zsh-autosuggestions zsh-syntax-highlighting)/' "$HOME/.zshrc"
-ok "Thème agnoster + plugins configurés"
+
+# Titre d'onglet terminal : hostname au repos, hostname - commande en cours
+if ! grep -q "DISABLE_AUTO_TITLE" "$HOME/.zshrc"; then
+    sed -i '/^ZSH_THEME=/a DISABLE_AUTO_TITLE="true"' "$HOME/.zshrc"
+    cat >> "$HOME/.zshrc" <<'EOF'
+
+# Titre onglet terminal
+function _set_tab_title_idle()    { print -Pn "\e]0;%m\a" }
+function _set_tab_title_running() { print -Pn "\e]0;%m - $1\a" }
+precmd_functions+=(_set_tab_title_idle)
+preexec_functions+=(_set_tab_title_running)
+EOF
+fi
+ok "Thème agnoster + plugins + titre onglet configurés"
 
 # ─── 6. Fix locale (DietPi) ──────────────────────────────────────────────────
 if [[ -f /etc/dietpi/.version ]]; then
