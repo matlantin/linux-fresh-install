@@ -19,6 +19,12 @@ Configure un environnement shell complet en une commande.
 | `gdu` | Analyseur d'espace disque interactif |
 | `bpytop` | Moniteur de ressources (CPU, RAM, réseau, disque) |
 | `mc` | Midnight Commander — gestionnaire de fichiers en mode texte |
+| `dnsutils` | `dig`, `nslookup` — outils de debug DNS |
+| `tcpdump` | Capture et analyse de trafic réseau |
+| `nmap` | Scan réseau |
+| `iftop` | Monitoring du trafic réseau en temps réel |
+| `ufw` | Firewall simple |
+| `unattended-upgrades` | Mises à jour de sécurité automatiques |
 
 ### Configuration appliquée
 

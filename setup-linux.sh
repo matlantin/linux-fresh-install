@@ -16,7 +16,8 @@ ok()   { echo -e "${GREEN}✓ $1${NC}"; }
 # ─── 1. Paquets ──────────────────────────────────────────────────────────────
 step "Installation des paquets"
 sudo apt update -qq
-sudo apt install -y zsh git curl bat gdu bpytop mc
+sudo apt install -y zsh git curl bat gdu bpytop mc \
+    dnsutils tcpdump nmap iftop ufw unattended-upgrades
 
 # Sur Debian/RPiOS, bat s'appelle batcat
 BAT_BIN=$(which batcat 2>/dev/null || which bat 2>/dev/null)
