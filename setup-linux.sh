@@ -23,7 +23,7 @@ prompt() {
     else
         ask "$question"
     fi
-    read -r REPLY
+    read -r REPLY </dev/tty
     if [[ -z "$REPLY" ]]; then REPLY="$default"; fi
 }
 
@@ -33,13 +33,13 @@ echo -e   "║      Setup Linux — Options           ║"
 echo -e   "╚══════════════════════════════════════╝${NC}\n"
 
 ask "Configurer le réseau (hostname, IP, VLAN...) ? [o/N]"
-read -r CONFIGURE_NETWORK
+read -r CONFIGURE_NETWORK </dev/tty
 
 ask "Désactiver le Wi-Fi ? (machine headless/serveur) [o/N]"
-read -r DISABLE_WIFI
+read -r DISABLE_WIFI </dev/tty
 
 ask "Installer AdGuard Home ? [o/N]"
-read -r INSTALL_ADGUARD
+read -r INSTALL_ADGUARD </dev/tty
 
 # ─── Collecte des infos réseau ───────────────────────────────────────────────
 if [[ "${CONFIGURE_NETWORK,,}" == "o" ]]; then
@@ -70,7 +70,7 @@ if [[ "${CONFIGURE_NETWORK,,}" == "o" ]]; then
 
     echo ""
     ask "Créer une interface VLAN ? [o/N]"
-    read -r ADD_VLAN
+    read -r ADD_VLAN </dev/tty
 
     if [[ "${ADD_VLAN,,}" == "o" ]]; then
         prompt "ID du VLAN (ex: 1020)"
