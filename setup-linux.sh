@@ -24,7 +24,7 @@ prompt() {
         ask "$question"
     fi
     read -r REPLY
-    [[ -z "$REPLY" ]] && REPLY="$default"
+    if [[ -z "$REPLY" ]]; then REPLY="$default"; fi
 }
 
 # ─── Menu interactif ─────────────────────────────────────────────────────────
@@ -45,7 +45,7 @@ read -r INSTALL_ADGUARD
 if [[ "${CONFIGURE_NETWORK,,}" == "o" ]]; then
     echo ""
     CURRENT_HOSTNAME=$(hostname)
-    CURRENT_IFACE=$(nmcli -t -f NAME,TYPE con show --active | grep ethernet | head -1 | cut -d: -f1)
+    CURRENT_IFACE=$(nmcli -t -f NAME,TYPE con show --active | grep -i ethernet | head -1 | cut -d: -f1 || true)
 
     prompt "Nouveau hostname" "$CURRENT_HOSTNAME"
     NET_HOSTNAME="$REPLY"
@@ -204,7 +204,8 @@ if [[ "${CONFIGURE_NETWORK,,}" == "o" ]]; then
     # VLAN
     if [[ "${ADD_VLAN,,}" == "o" ]]; then
         VLAN_CON="eth0.${VLAN_ID}"
-        PHYS_IFACE=$(nmcli -t -f GENERAL.DEVICES con show "$NET_CON" 2>/dev/null | cut -d: -f2 || echo "eth0")
+        PHYS_IFACE=$(nmcli -t -f GENERAL.DEVICES con show "$NET_CON" 2>/dev/null | cut -d: -f2)
+        [[ -z "$PHYS_IFACE" ]] && PHYS_IFACE="eth0"
 
         # Supprimer la connexion si elle existe déjà
         nmcli con del "$VLAN_CON" 2>/dev/null || true
