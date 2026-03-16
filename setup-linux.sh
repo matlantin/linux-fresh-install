@@ -53,6 +53,9 @@ if [[ "${CONFIGURE_NETWORK,,}" == "o" ]]; then
     prompt "Interface principale (connection NetworkManager)" "$CURRENT_IFACE"
     NET_CON="$REPLY"
 
+    prompt "Renommer cette connexion (laisser vide pour garder '$NET_CON')"
+    NET_CON_RENAME="$REPLY"
+
     prompt "Adresse IP (ex: 192.168.1.10/24)"
     NET_IP="$REPLY"
 
@@ -177,6 +180,13 @@ if [[ "${CONFIGURE_NETWORK,,}" == "o" ]]; then
     if [[ "$NET_HOSTNAME" != "$(hostname)" ]]; then
         sudo hostnamectl set-hostname "$NET_HOSTNAME"
         ok "Hostname → $NET_HOSTNAME"
+    fi
+
+    # Renommage de la connexion
+    if [[ -n "$NET_CON_RENAME" && "$NET_CON_RENAME" != "$NET_CON" ]]; then
+        sudo nmcli con mod "$NET_CON" connection.id "$NET_CON_RENAME"
+        ok "Connexion renommée : $NET_CON → $NET_CON_RENAME"
+        NET_CON="$NET_CON_RENAME"
     fi
 
     # IP fixe sur l'interface principale
