@@ -15,16 +15,71 @@ step() { echo -e "\n${BLUE}▶ $1${NC}"; }
 ok()   { echo -e "${GREEN}✓ $1${NC}"; }
 ask()  { echo -e "${YELLOW}? $1${NC}"; }
 
+prompt() {
+    # prompt "Question" "valeur_defaut" → stocke la réponse dans REPLY
+    local question="$1" default="$2"
+    if [[ -n "$default" ]]; then
+        ask "$question [$default]"
+    else
+        ask "$question"
+    fi
+    read -r REPLY
+    [[ -z "$REPLY" ]] && REPLY="$default"
+}
+
 # ─── Menu interactif ─────────────────────────────────────────────────────────
 echo -e "\n${BLUE}╔══════════════════════════════════════╗"
 echo -e   "║      Setup Linux — Options           ║"
 echo -e   "╚══════════════════════════════════════╝${NC}\n"
+
+ask "Configurer le réseau (hostname, IP, VLAN...) ? [o/N]"
+read -r CONFIGURE_NETWORK
 
 ask "Désactiver le Wi-Fi ? (machine headless/serveur) [o/N]"
 read -r DISABLE_WIFI
 
 ask "Installer AdGuard Home ? [o/N]"
 read -r INSTALL_ADGUARD
+
+# ─── Collecte des infos réseau ───────────────────────────────────────────────
+if [[ "${CONFIGURE_NETWORK,,}" == "o" ]]; then
+    echo ""
+    CURRENT_HOSTNAME=$(hostname)
+    CURRENT_IFACE=$(nmcli -t -f NAME,TYPE con show --active | grep ethernet | head -1 | cut -d: -f1)
+
+    prompt "Nouveau hostname" "$CURRENT_HOSTNAME"
+    NET_HOSTNAME="$REPLY"
+
+    prompt "Interface principale (connection NetworkManager)" "$CURRENT_IFACE"
+    NET_CON="$REPLY"
+
+    prompt "Adresse IP (ex: 192.168.1.10/24)"
+    NET_IP="$REPLY"
+
+    prompt "Gateway"
+    NET_GW="$REPLY"
+
+    prompt "DNS primaire" "1.1.1.1"
+    NET_DNS1="$REPLY"
+
+    prompt "DNS secondaire (laisser vide si aucun)"
+    NET_DNS2="$REPLY"
+
+    echo ""
+    ask "Créer une interface VLAN ? [o/N]"
+    read -r ADD_VLAN
+
+    if [[ "${ADD_VLAN,,}" == "o" ]]; then
+        prompt "ID du VLAN (ex: 1020)"
+        VLAN_ID="$REPLY"
+
+        prompt "Adresse IP du VLAN (ex: 10.10.20.1/24)"
+        VLAN_IP="$REPLY"
+
+        prompt "Gateway VLAN (laisser vide si aucune)"
+        VLAN_GW="$REPLY"
+    fi
+fi
 
 # ─── 1. Paquets ──────────────────────────────────────────────────────────────
 step "Installation des paquets"
@@ -114,7 +169,53 @@ else
     echo "zsh est déjà le shell par défaut."
 fi
 
-# ─── 8. Désactivation Wi-Fi ──────────────────────────────────────────────────
+# ─── 8. Configuration réseau ─────────────────────────────────────────────────
+if [[ "${CONFIGURE_NETWORK,,}" == "o" ]]; then
+    step "Configuration réseau"
+
+    # Hostname
+    if [[ "$NET_HOSTNAME" != "$(hostname)" ]]; then
+        sudo hostnamectl set-hostname "$NET_HOSTNAME"
+        ok "Hostname → $NET_HOSTNAME"
+    fi
+
+    # IP fixe sur l'interface principale
+    DNS_ENTRIES="$NET_DNS1"
+    [[ -n "$NET_DNS2" ]] && DNS_ENTRIES="$NET_DNS1,$NET_DNS2"
+
+    sudo nmcli con mod "$NET_CON" \
+        ipv4.addresses "$NET_IP" \
+        ipv4.gateway   "$NET_GW" \
+        ipv4.dns       "$DNS_ENTRIES" \
+        ipv4.method    manual
+    sudo nmcli con up "$NET_CON"
+    ok "IP $NET_IP configurée sur $NET_CON"
+
+    # VLAN
+    if [[ "${ADD_VLAN,,}" == "o" ]]; then
+        VLAN_CON="eth0.${VLAN_ID}"
+        PHYS_IFACE=$(nmcli -t -f GENERAL.DEVICES con show "$NET_CON" 2>/dev/null | cut -d: -f2 || echo "eth0")
+
+        # Supprimer la connexion si elle existe déjà
+        nmcli con del "$VLAN_CON" 2>/dev/null || true
+
+        VLAN_ARGS=(
+            type vlan
+            con-name "$VLAN_CON"
+            dev "$PHYS_IFACE"
+            id "$VLAN_ID"
+            ipv4.addresses "$VLAN_IP"
+            ipv4.method manual
+        )
+        [[ -n "$VLAN_GW" ]] && VLAN_ARGS+=(ipv4.gateway "$VLAN_GW")
+
+        sudo nmcli con add "${VLAN_ARGS[@]}"
+        sudo nmcli con up "$VLAN_CON"
+        ok "VLAN $VLAN_ID → $VLAN_IP configuré sur $VLAN_CON"
+    fi
+fi
+
+# ─── 9. Désactivation Wi-Fi ──────────────────────────────────────────────────
 if [[ "${DISABLE_WIFI,,}" == "o" ]]; then
     step "Désactivation du Wi-Fi"
     CONFIG_TXT="/boot/firmware/config.txt"
@@ -128,7 +229,7 @@ if [[ "${DISABLE_WIFI,,}" == "o" ]]; then
     sudo nmcli radio wifi off 2>/dev/null || true
 fi
 
-# ─── 9. AdGuard Home ─────────────────────────────────────────────────────────
+# ─── 10. AdGuard Home ────────────────────────────────────────────────────────
 if [[ "${INSTALL_ADGUARD,,}" == "o" ]]; then
     step "Installation AdGuard Home"
     curl -s -S -L https://raw.githubusercontent.com/AdguardTeam/AdGuardHome/master/scripts/install.sh | sh -s -- -v
