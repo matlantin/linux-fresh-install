@@ -8,10 +8,23 @@ set -e
 # ─── Couleurs ────────────────────────────────────────────────────────────────
 GREEN='\033[0;32m'
 BLUE='\033[0;34m'
+YELLOW='\033[1;33m'
 NC='\033[0m'
 
 step() { echo -e "\n${BLUE}▶ $1${NC}"; }
 ok()   { echo -e "${GREEN}✓ $1${NC}"; }
+ask()  { echo -e "${YELLOW}? $1${NC}"; }
+
+# ─── Menu interactif ─────────────────────────────────────────────────────────
+echo -e "\n${BLUE}╔══════════════════════════════════════╗"
+echo -e   "║      Setup Linux — Options           ║"
+echo -e   "╚══════════════════════════════════════╝${NC}\n"
+
+ask "Désactiver le Wi-Fi ? (machine headless/serveur) [o/N]"
+read -r DISABLE_WIFI
+
+ask "Installer AdGuard Home ? [o/N]"
+read -r INSTALL_ADGUARD
 
 # ─── 1. Paquets ──────────────────────────────────────────────────────────────
 step "Installation des paquets"
@@ -99,6 +112,27 @@ if [[ "$SHELL" != "$ZSH_PATH" ]]; then
     ok "Shell par défaut → $ZSH_PATH (effectif à la prochaine connexion)"
 else
     echo "zsh est déjà le shell par défaut."
+fi
+
+# ─── 8. Désactivation Wi-Fi ──────────────────────────────────────────────────
+if [[ "${DISABLE_WIFI,,}" == "o" ]]; then
+    step "Désactivation du Wi-Fi"
+    CONFIG_TXT="/boot/firmware/config.txt"
+    [[ ! -f "$CONFIG_TXT" ]] && CONFIG_TXT="/boot/config.txt"
+    if ! grep -q "disable-wifi" "$CONFIG_TXT"; then
+        echo "dtoverlay=disable-wifi" | sudo tee -a "$CONFIG_TXT" > /dev/null
+        ok "Wi-Fi désactivé de façon permanente dans $CONFIG_TXT"
+    else
+        echo "Wi-Fi déjà désactivé dans $CONFIG_TXT."
+    fi
+    sudo nmcli radio wifi off 2>/dev/null || true
+fi
+
+# ─── 9. AdGuard Home ─────────────────────────────────────────────────────────
+if [[ "${INSTALL_ADGUARD,,}" == "o" ]]; then
+    step "Installation AdGuard Home"
+    curl -s -S -L https://raw.githubusercontent.com/AdguardTeam/AdGuardHome/master/scripts/install.sh | sh -s -- -v
+    ok "AdGuard Home installé — accès initial : http://$(hostname -I | awk '{print $1}'):3000"
 fi
 
 echo -e "\n${GREEN}Installation terminée. Reconnecte-toi pour activer zsh.${NC}\n"
