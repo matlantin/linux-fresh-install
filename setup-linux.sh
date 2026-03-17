@@ -276,7 +276,12 @@ if [[ "${CONFIGURE_NETWORK,,}" == "o" ]]; then
     step "Configuration réseau"
 
     if [[ "$NET_HOSTNAME" != "$(hostname)" ]]; then
-        sudo hostnamectl set-hostname "$NET_HOSTNAME"
+        if command -v raspi-config &>/dev/null; then
+            sudo raspi-config nonint do_hostname "$NET_HOSTNAME"
+        else
+            sudo hostnamectl set-hostname "$NET_HOSTNAME"
+            sudo sed -i "s/127.0.1.1.*/127.0.1.1\t$NET_HOSTNAME/" /etc/hosts
+        fi
         ok "Hostname → $NET_HOSTNAME"
     fi
 
