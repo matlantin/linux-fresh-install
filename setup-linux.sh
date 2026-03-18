@@ -213,8 +213,11 @@ step "Configuration .zshrc"
 sed -i 's/^ZSH_THEME=.*/ZSH_THEME="agnoster"/' "$HOME/.zshrc"
 sed -i 's/^plugins=.*/plugins=(git z zsh-autosuggestions zsh-syntax-highlighting)/' "$HOME/.zshrc"
 
-if ! grep -q "DISABLE_AUTO_TITLE" "$HOME/.zshrc"; then
-    sed -i '/^ZSH_THEME=/a DISABLE_AUTO_TITLE="true"' "$HOME/.zshrc"
+if ! grep -q "_set_tab_title_idle" "$HOME/.zshrc"; then
+    sed -i 's/^#*\s*DISABLE_AUTO_TITLE.*/DISABLE_AUTO_TITLE="true"/' "$HOME/.zshrc"
+    if ! grep -q 'DISABLE_AUTO_TITLE="true"' "$HOME/.zshrc"; then
+        sed -i '/^ZSH_THEME=/a DISABLE_AUTO_TITLE="true"' "$HOME/.zshrc"
+    fi
     cat >> "$HOME/.zshrc" <<'EOF'
 
 # Titre onglet terminal
